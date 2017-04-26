@@ -63,6 +63,9 @@ void Turn(float degreesToTurn, char* direction, int speed)
 	//Degrees to turn / 90
 	//Above ratio * encoder counts from doing a 90 degree point turn = encoder coounts right
 
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//Play around with the below value, 450 does not seem to be perfect...
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//450 is the counts for a 90 degree point turn
 	int pointTurn90Counts = 450;
 	int encoderCountsRight = (degreesToTurn / 90) * pointTurn90Counts;
@@ -122,26 +125,124 @@ void Turn(float degreesToTurn, char* direction, int speed)
 	motor[backLeft] = 0;
 }
 
-task main()
+void RotateArm(int degreesToRotate, int speed)
 {
-	while (true)
+	resetMotorEncoder(armMotor);
+
+	//You can clear the timer, but it automatically starts
+	clearTimer(T1);
+
+	//Get degreesToRotate / 145
+	//Multiply above ratio by armVerticalCounts
+	//Move motors until they reach above value
+	bool booleanChecks[3];
+	int counter = 0;
+	bool status = false;
+	int armVerticalCounts = 1650;
+	int armEncoderCounts = (degreesToRotate / 145) * armVerticalCounts;
+
+	while (!status)
 	{
-		if (vexRT[Btn8D] == 1)
+			if (abs(nMotorEncoder(armMotor)) < armEncoderCounts)
+				motor[armMotor] = speed;
+			else if (abs(nMotorEncoder(armMotor)) < armEncoderCounts - 500)
+				motor[armMotor] = speed / 2;
+			else if (abs(nMotorEncoder(armMotor)) < armEncoderCounts - 150)
+				motor[armMotor] = speed / 4;
+			else if (abs(nMotorEncoder(armMotor)) == armEncoderCounts)
+				motor[armMotor] = 0;
+			else if (abs(nMotorEncoder(armMotor)) > armEncoderCounts + 150)
+				motor[armMotor] = -speed / 4;
+			else if (abs(nMotorEncoder(armMotor)) > armEncoderCounts + 500)
+				motor[armMotor] = -speed / 2;
+			else if (abs(nMotorEncoder(armMotor)) > armEncoderCounts)
+					motor[armMotor] = -speed;
+
+		if (time1[T1] % 200 == 0)
 		{
-			Turn(90, "Right", 127);
-			wait1Msec(500);
-			Turn(90, "Left", 127);
-			wait1Msec(500);
-			Move(5, 127);
-			wait1Msec(500);
-			Move(5, -127);
-		}
-		if (vexRT[Btn7D] == 1)
-		{
-			motor[frontRight] = 0;
-			motor[frontLeft] = 0;
-			motor[backRight] = 0;
-			motor[backLeft] = 0;
+			if (counter == 3)
+			{
+				//If all the check booleans equal the same
+				if (booleanChecks[0] == booleanChecks[1] == booleanChecks[2] && booleanChecks[0] == true)
+					status = true;
+				else
+					//Reset counter if we have reached the final check and failed it
+					counter = 0;
+			}
+			else if (abs(nMotorEncoder(armMotor)) == armEncoderCounts)
+			{
+				booleanChecks[counter] = true;
+				counter++;
+			}
+			else if (abs(nMotorEncoder(armMotor)) != armEncoderCounts)
+			{
+				booleanChecks[counter] = false;
+				counter++;
+			}
 		}
 	}
+	motor[armMotor] = 0;
+}
+
+void RotateClaw(int degreesToRotate, int speed)
+{
+	resetMotorEncoder(clawMotor);
+
+	clearTimer(T1);
+
+	//Get degreesToRotate / 160
+	//Multiply above ratio by clawStraightCounts
+	//Move motor until they reach above value
+	bool booleanChecks[3];
+	int counter = 0;
+	bool status = false;
+	int clawStraightCounts = 1060;
+	int clawEncoderCounts = (degreesToRotate / 160) * clawStraightCounts;
+
+	while (!status)
+	{
+			if (abs(nMotorEncoder(clawMotor)) < clawEncoderCounts)
+				motor[clawMotor] = speed;
+			else if (abs(nMotorEncoder(clawMotor)) < clawEncoderCounts - 500)
+				motor[clawMotor] = speed / 2;
+			else if (abs(nMotorEncoder(clawMotor)) < clawEncoderCounts - 150)
+				motor[clawMotor] = speed / 4;
+			else if (abs(nMotorEncoder(clawMotor)) == clawEncoderCounts)
+				motor[clawMotor] = 0;
+			else if (abs(nMotorEncoder(clawMotor)) > clawEncoderCounts + 150)
+				motor[clawMotor] = -speed / 4;
+			else if (abs(nMotorEncoder(clawMotor)) > clawEncoderCounts + 500)
+				motor[clawMotor] = -speed / 2;
+			else if (abs(nMotorEncoder(clawMotor)) > clawEncoderCounts)
+					motor[clawMotor] = -speed;
+
+		if (time1[T1] % 200 == 0)
+		{
+			if (counter == 3)
+			{
+				//If all the check booleans equal the same
+				if (booleanChecks[0] == booleanChecks[1] == booleanChecks[2] && booleanChecks[0] == true)
+					status = true;
+				else
+					//Reset counter if we have reached the final check and failed it
+					counter = 0;
+			}
+			else if (abs(nMotorEncoder(clawMotor)) == clawEncoderCounts)
+			{
+				booleanChecks[counter] = true;
+				counter++;
+			}
+			else if (abs(nMotorEncoder(clawMotor)) != clawEncoderCounts)
+			{
+				booleanChecks[counter] = false;
+				counter++;
+			}
+		}
+	}
+	motor[clawMotor] = 0;
+}
+
+task main()
+{
+	RotateClaw(160, -127);
 }
